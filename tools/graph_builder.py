@@ -13,6 +13,10 @@ def graph_build(graph: Neo4jGraph, doc_pages: List[Document], spliter):
     '''
     自動建立圖樹
     '''
+    if len(doc_pages) == 0:
+        raise ValueError('doc_pages is empty')
+    if spliter is None:
+        raise ValueError('split_texts is empty')
     # filename: document_node
     graph_docs: List[GraphDocument] = []
     document = {} # keys [document, node]
@@ -60,11 +64,12 @@ def graph_build(graph: Neo4jGraph, doc_pages: List[Document], spliter):
     for key, item in doc_properties.items():
         quote = "'" if isinstance(item, str) else ""
         set_query += f'n.{key} = {quote}{item}{quote}, '
-    set_query = set_query[:-2]
-    temp = f'''
-            MATCH (n) WHERE n.id = '{document['node'].id}'
-            SET {set_query}
-            RETURN n
-            '''
-    graph.query(temp)
+    if len(doc_properties) > 0:
+        set_query = set_query[:-2]
+        temp = f'''
+                MATCH (n) WHERE n.id = '{document['node'].id}'
+                SET {set_query}
+                RETURN n
+                '''
+        graph.query(temp)
     
