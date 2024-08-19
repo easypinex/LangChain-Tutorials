@@ -18,17 +18,18 @@ def graph_build(graph: Neo4jGraph, doc_pages: List[Document], spliter):
     document = {} # keys [document, node]
     pre_node = None
     graph_doc: GraphDocument = None
+    doc_properties = {}
     if len(doc_pages) > 0:
         page = doc_pages[0]
         path = page.metadata['source']
         filename = os.path.basename(path)
-        properties = {
+        doc_properties = {
             'filename': filename,
             'file_path': path,
             'total_page_num': len(doc_pages)
         }
-        document['node'] = Node(id=str(uuid()), type='Document', properties=properties)
-        document['document'] = Document(page_content="", metadata=properties)
+        document['node'] = Node(id=str(uuid()), type='Document')
+        document['document'] = Document(page_content="")
         pre_node = document['node']
         graph_doc = GraphDocument(nodes=[], relationships=[], source=document['document'])
         graph_docs.append(graph_doc)
@@ -55,9 +56,14 @@ def graph_build(graph: Neo4jGraph, doc_pages: List[Document], spliter):
             pre_node = chunk_node
             
     graph.add_graph_documents(graph_docs)
+    set_query = ''
+    for key, item in doc_properties.items():
+        quote = "'" if isinstance(item, str) else ""
+        set_query += f'n.{key} = {quote}{item}{quote}, '
+    set_query = set_query[:-2]
     temp = f'''
             MATCH (n) WHERE n.id = '{document['node'].id}'
-            SET n.filename = '{filename}', n.path = '{path}', n.total_page_num = {len(doc_pages)}
+            SET {set_query}
             RETURN n
             '''
     graph.query(temp)
