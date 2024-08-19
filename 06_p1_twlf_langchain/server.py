@@ -19,7 +19,7 @@ emb = AzureOpenAIEmbeddings(
 
 from langchain_community.document_loaders import PyPDFLoader
 
-loader = PyPDFLoader('./data/台灣人壽金美鑫美元利率變動型終身壽險.pdf')
+loader = PyPDFLoader('../data/台灣人壽金美鑫美元利率變動型終身壽險.pdf')
 docs = loader.load()
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter

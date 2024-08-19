@@ -83,11 +83,11 @@ emb = AzureOpenAIEmbeddings(
 )
 # ----------------------------------------
 
-dir = 'data/'
+dir = '../data'
 for filename in os.listdir(dir):
     docs = []
     if filename.endswith(".pdf"):
-        loader = PyPDFLoader(f'{dir}{filename}')
+        loader = PyPDFLoader(os.path.join(dir, filename))
         docs += loader.load()
     print(docs)
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, separators=["\n\n", "，", "。", "【"])
