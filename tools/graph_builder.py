@@ -69,10 +69,10 @@ class TwlfGraphBuilder:
             split_texts = spliter.split_text(page_content)
             for text in split_texts:
                 properties = {
-                    'chunk_idx': chunk_idx,
+                    # 'chunk_idx': chunk_idx,
                     'content': text,
-                    'name': f'Chunk_{chunk_idx}',
-                    'source_idx': document['node'].id,
+                    # 'name': f'Chunk_{chunk_idx}',
+                    # 'source_idx': document['node'].id,
                     'page_num': page_idx + 1
                 }
                 chunk_idx+=1
