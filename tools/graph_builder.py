@@ -1,6 +1,6 @@
 """整理建構圖樹方法"""
 import os
-from typing import List
+from typing import Any, Dict, List
 from uuid import uuid4 as uuid
 
 from langchain_community.graphs import Neo4jGraph
@@ -13,14 +13,16 @@ class TwlfGraphBuilder:
         self.graph = graph
         self._tag_node_id_map = {} ## tag, node_id, 用以記憶每個tag node 的 id, 減少查詢
 
-    def graph_build(self, doc_pages: List[Document], spliter, tags: List[str] = []):
+    def graph_build(self, doc_pages: List[Document], spliter, tags: List[str] | None = None):
         '''
         自動建立圖樹
         '''
         if len(doc_pages) == 0:
-            raise ValueError('doc_pages is empty')
+            return
         if spliter is None:
             raise ValueError('split_texts is empty')
+        if tags is None:
+            tags = []
         # filename: document_node
         graph_docs: List[GraphDocument] = []
         document = {} # keys [document, node]
@@ -42,22 +44,7 @@ class TwlfGraphBuilder:
             graph_doc = GraphDocument(nodes=[], relationships=[], source=document['document'])
             graph_docs.append(graph_doc)
             for tag in tags:
-                tag_properties = {
-                    'name': tag
-                }
-                if self._tag_node_id_map.get(tag) is not None:
-                    tag_node = Node(id=self._tag_node_id_map.get(tag), type='Tag', properties=tag_properties)
-                else:
-                    tag_query = f"""
-                        MATCH (n:Tag {{name: '{tag}'}})
-                        RETURN n.id as id
-                    """
-                    query_results = self.graph.query(tag_query)
-                    if len(query_results) == 0 :
-                        tag_node = Node(id=str(uuid()), type='Tag', properties=tag_properties)
-                    else:
-                        tag_dict = query_results[0]
-                        tag_node = Node(id=tag_dict['id'], type='Tag', properties=tag_properties)
+                tag_node = self._get_tagnode(tag)
                 self._tag_node_id_map[tag] = tag_node.id
                 graph_doc.nodes.append(tag_node)
                 tag_relationship = Relationship(source=document['node'], target=tag_node, type='TAG')
@@ -83,19 +70,39 @@ class TwlfGraphBuilder:
                 graph_doc.relationships.append(relationship)
                 graph_doc.relationships.append(relationship_part)
                 pre_node = chunk_node
-                
-        self.graph.add_graph_documents(graph_docs)
-        set_query = ''
-        for key, item in doc_properties.items():
-            quote = "'" if isinstance(item, str) else ""
-            set_query += f'n.{key} = {quote}{item}{quote}, '
-        if len(doc_properties) > 0:
-            set_query = set_query[:-2]
-            temp = f'''
-                    MATCH (n) WHERE n.id = '{document['node'].id}'
-                    SET {set_query}
-                    RETURN n
-                    '''
-            self.graph.query(temp)
-        
 
+        self.graph.add_graph_documents(graph_docs)
+        self._update_node_properties(document['node'].id, doc_properties)
+
+    def _get_tagnode(self, tag_name):
+        tag_properties = {
+            'name': tag_name
+        }
+        if self._tag_node_id_map.get(tag_name) is not None:
+            tag_node = Node(id=self._tag_node_id_map.get(tag_name), type='Tag', properties=tag_properties)
+            return tag_node
+        tag_query = f"""
+            MATCH (n:Tag {{name: '{tag_name}'}})
+            RETURN n.id as id
+        """
+        query_results = self.graph.query(tag_query)
+        if len(query_results) == 0 :
+            tag_node = Node(id=str(uuid()), type='Tag', properties=tag_properties)
+            return tag_node
+        tag_dict = query_results[0]
+        tag_node = Node(id=tag_dict['id'], type='Tag', properties=tag_properties)
+        return tag_node
+
+    def _update_node_properties(self, node_id: str, node_properties: dict) -> List[Dict[str, Any]] | None:
+        if len(node_properties) == 0:
+            return None
+        set_query = ''
+        for key in node_properties.keys():
+            set_query += f'n.{key} = ${key}, '
+        set_query = set_query[:-2]
+        temp = f'''
+                MATCH (n) WHERE n.id = '{node_id}'
+                SET {set_query}
+                RETURN n
+                '''
+        return self.graph.query(temp, node_properties)
