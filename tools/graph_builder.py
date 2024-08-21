@@ -46,7 +46,7 @@ class TwlfGraphBuilder:
             'file_path': path,
             'total_page_num': len(doc_pages)
         }
-        document['node'] = Node(id=str(uuid()), type='__Document__')
+        document['node'] = Node(id=str(uuid()), type='Document')
         document['document'] = Document(page_content="")
         pre_node = document['node']
         self.graph_document = GraphDocument(
