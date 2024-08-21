@@ -8,10 +8,11 @@ from langchain_community.graphs.graph_document import (Document, GraphDocument,
                                                        Node, Relationship)
 # from langchain_core.documents.transformers import BaseDocumentTransformer
 
+
 class TwlfGraphBuilder:
     def __init__(self, graph: Neo4jGraph):
         self.graph = graph
-        self._tag_node_id_map = {} ## tag, node_id, 用以記憶每個tag node 的 id, 減少查詢
+        self._tag_node_id_map = {}  # tag, node_id, 用以記憶每個tag node 的 id, 減少查詢
 
     def graph_build(self, doc_pages: List[Document], spliter, tags: List[str] | None = None):
         '''
@@ -25,7 +26,7 @@ class TwlfGraphBuilder:
             tags = []
         # filename: document_node
         graph_docs: List[GraphDocument] = []
-        document = {} # keys [document, node]
+        document = {}  # keys [document, node]
         pre_node = None
         graph_doc: GraphDocument = None
         doc_properties = {}
@@ -41,13 +42,15 @@ class TwlfGraphBuilder:
             document['node'] = Node(id=str(uuid()), type='Document')
             document['document'] = Document(page_content="")
             pre_node = document['node']
-            graph_doc = GraphDocument(nodes=[], relationships=[], source=document['document'])
+            graph_doc = GraphDocument(
+                nodes=[], relationships=[], source=document['document'])
             graph_docs.append(graph_doc)
             for tag in tags:
                 tag_node = self._get_tagnode(tag)
                 self._tag_node_id_map[tag] = tag_node.id
                 graph_doc.nodes.append(tag_node)
-                tag_relationship = Relationship(source=document['node'], target=tag_node, type='TAG')
+                tag_relationship = Relationship(
+                    source=document['node'], target=tag_node, type='TAG')
                 graph_doc.relationships.append(tag_relationship)
 
         chunk_idx = 0
@@ -62,11 +65,14 @@ class TwlfGraphBuilder:
                     # 'source_idx': document['node'].id,
                     'page_num': page_idx + 1
                 }
-                chunk_idx+=1
-                chunk_node = Node(id=str(uuid()), type='Chunk', properties=properties)
+                chunk_idx += 1
+                chunk_node = Node(id=str(uuid()), type='Chunk',
+                                  properties=properties)
                 graph_doc.nodes.append(chunk_node)
-                relationship = Relationship(source=pre_node, target=chunk_node, type='NEXT')
-                relationship_part = Relationship(source=document['node'], target=chunk_node, type='PART')
+                relationship = Relationship(
+                    source=pre_node, target=chunk_node, type='NEXT')
+                relationship_part = Relationship(
+                    source=document['node'], target=chunk_node, type='PART')
                 graph_doc.relationships.append(relationship)
                 graph_doc.relationships.append(relationship_part)
                 pre_node = chunk_node
@@ -79,18 +85,21 @@ class TwlfGraphBuilder:
             'name': tag_name
         }
         if self._tag_node_id_map.get(tag_name) is not None:
-            tag_node = Node(id=self._tag_node_id_map.get(tag_name), type='Tag', properties=tag_properties)
+            tag_node = Node(id=self._tag_node_id_map.get(
+                tag_name), type='Tag', properties=tag_properties)
             return tag_node
         tag_query = f"""
             MATCH (n:Tag {{name: '{tag_name}'}})
             RETURN n.id as id
         """
         query_results = self.graph.query(tag_query)
-        if len(query_results) == 0 :
-            tag_node = Node(id=str(uuid()), type='Tag', properties=tag_properties)
+        if len(query_results) == 0:
+            tag_node = Node(id=str(uuid()), type='Tag',
+                            properties=tag_properties)
             return tag_node
         tag_dict = query_results[0]
-        tag_node = Node(id=tag_dict['id'], type='Tag', properties=tag_properties)
+        tag_node = Node(id=tag_dict['id'], type='Tag',
+                        properties=tag_properties)
         return tag_node
 
     def _update_node_properties(self, node_id: str, node_properties: dict) -> List[Dict[str, Any]] | None:
