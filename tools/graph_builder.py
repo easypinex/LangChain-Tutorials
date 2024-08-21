@@ -137,7 +137,15 @@ class TwlfGraphBuilder:
                 text = text.replace(bad_char, '')
         return text
 
-    def get_chunk_and_graphDocument(self, graph_document_list):
+    def get_chunk_and_graphDocument(self, graph_document_list: List[GraphDocument]) -> List[dict]:
+        '''
+        將圖樹中的 chunk 與 節點 提取出來, 提供陣列
+
+        params:
+            graph_document_list: 圖陣列
+        return:
+            lst_chunk_chunkId_document: [{'graph_doc': GraphDocument, 'chunk_id': str}, ...]
+        '''
         logging.info(
             "creating list of chunks and graph documents in get_chunk_and_graphDocument func")
         lst_chunk_chunkId_document = []
@@ -148,7 +156,13 @@ class TwlfGraphBuilder:
 
         return lst_chunk_chunkId_document
 
-    def merge_relationship_between_chunk_and_entites(self, graph_documents_chunk_chunk_Id: list):
+    def merge_relationship_between_chunk_and_entites(self, graph_documents_chunk_chunk_Id: list) -> List[dict]:
+        '''
+        將 chunk 與 節點 的關係於資料庫中串在一起
+
+        params:
+            graph_documents_chunk_chunk_Id: [{'graph_doc': GraphDocument, 'chunk_id': str}, ...]
+        '''
         batch_data = []
         logging.info(
             "Create HAS_ENTITY relationship between chunks and entities")
@@ -174,6 +188,26 @@ class TwlfGraphBuilder:
                         MERGE (c)-[:HAS_ENTITY]->(n)
                     """
             self.graph.query(unwind_query, params={"batch_data": batch_data})
+
+    def get_graph_from_llm(self, llm, chunkId_chunkDoc_list, allowedNodes, allowedRelationship) -> List[GraphDocument]:
+        '''
+        由 LLM 取得圖樹
+
+        params:
+            llm: LLM 模型
+            chunkId_chunkDoc_list: [{'chunk_id': str, 'chunk_doc': Document}, ...]
+            allowedNodes: List[str] 允許的節點類型(Label)
+            allowedRelationship: List[str] 允許的關係
+            
+        return:
+            graph_document_list: List[GraphDocument]
+        '''
+        combined_chunk_document_list = self._get_combined_chunks(
+            chunkId_chunkDoc_list)
+        graph_document_list = self._get_graph_document_list(
+            llm, combined_chunk_document_list, allowedNodes, allowedRelationship
+        )
+        return graph_document_list
 
     def _get_combined_chunks(self, chunkId_chunkDoc_list, chunks_to_combine=1):
         logging.info(
@@ -232,12 +266,4 @@ class TwlfGraphBuilder:
                 graph_document = future.result()
                 graph_document_list.append(graph_document[0])
 
-        return graph_document_list
-
-    def get_graph_from_llm(self, llm, chunkId_chunkDoc_list, allowedNodes, allowedRelationship):
-        combined_chunk_document_list = self._get_combined_chunks(
-            chunkId_chunkDoc_list)
-        graph_document_list = self._get_graph_document_list(
-            llm, combined_chunk_document_list, allowedNodes, allowedRelationship
-        )
         return graph_document_list
