@@ -12,7 +12,7 @@ import logging
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 
-from langchain_experimental.graph_transformers import LLMGraphTransformer
+from tools.TWLF_LLMGraphTransformer import TWLF_LLMGraphTransformer
 
 
 class TwlfGraphBuilder:
@@ -22,7 +22,7 @@ class TwlfGraphBuilder:
         self.chunk_docs: List[Document] = []
         self.chunk_list: List[dict] = []
         self.graph_document: GraphDocument | None = None
-
+        
     def graph_build(self, doc_pages: List[Document], spliter=None, tags: List[str] | None = None):
         '''
         自動建立圖樹
@@ -246,7 +246,7 @@ class TwlfGraphBuilder:
             node_properties = False
         else:
             node_properties = ["description"]
-        llm_transformer = LLMGraphTransformer(
+        llm_transformer = TWLF_LLMGraphTransformer(
             llm=llm,
             node_properties=node_properties,
             allowed_nodes=allowedNodes,
