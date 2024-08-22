@@ -46,7 +46,7 @@ class TwlfGraphBuilder:
             'file_path': path,
             'total_page_num': len(doc_pages)
         }
-        document['node'] = Node(id=str(uuid()), type='Document')
+        document['node'] = Node(id=str(uuid()), type='__Document__')
         document['document'] = Document(page_content="")
         pre_node = document['node']
         self.graph_document = GraphDocument(
@@ -72,7 +72,7 @@ class TwlfGraphBuilder:
                     'page_number': page_idx + 1
                 }
 
-                chunk_node = Node(id=str(uuid()), type='Chunk',
+                chunk_node = Node(id=str(uuid()), type='__Chunk__',
                                   properties=properties)
                 chunk_doc = Document(page_content=text, metadata=metadata)
                 self.chunk_list.append(
@@ -183,7 +183,7 @@ class TwlfGraphBuilder:
         if batch_data:
             unwind_query = """
                         UNWIND $batch_data AS data
-                        MATCH (c:Chunk {id: data.chunk_id})
+                        MATCH (c:__Chunk__ {id: data.chunk_id})
                         CALL apoc.merge.node([data.node_type], {id: data.node_id}) YIELD node AS n
                         MERGE (c)-[:HAS_ENTITY]->(n)
                     """
