@@ -26,7 +26,7 @@ class TwlfGraphBuilder:
         self.graph_document: GraphDocument | None = None
         self._max_thread = max_thread
         
-    def chunkgraph_build_from_one_file(self, doc_pages: List[Document], spliter=None, tags: List[str] | None = None):
+    def graph_build(self, doc_pages: List[Document], spliter=None, tags: List[str] | None = None):
         '''
         自動建立圖樹
         '''
