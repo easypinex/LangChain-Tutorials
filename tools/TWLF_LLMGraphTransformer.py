@@ -1,7 +1,9 @@
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from langchain_experimental.graph_transformers import LLMGraphTransformer
-from langchain_experimental.graph_transformers.llm import default_prompt, _Graph, optional_enum_field
+from langchain_experimental.graph_transformers.llm import default_prompt, _Graph, optional_enum_field, system_prompt
 from pydantic.v1 import BaseModel, Field, create_model
+
+from langchain_core.prompts import ChatPromptTemplate
 
 class TWLF_LLMGraphTransformer(LLMGraphTransformer):
     '''
@@ -31,8 +33,32 @@ class TWLF_LLMGraphTransformer(LLMGraphTransformer):
         )
     
         structured_llm = llm.with_structured_output(schema, include_raw=True)
-        prompt = prompt or default_prompt
+        prompt = prompt or _get_prompt() # 新增使用繁體中文回應問題
         self.chain = prompt | structured_llm
+
+def _get_prompt():
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                system_prompt,
+            ),
+            (
+                "system",
+                "請確保使用繁體中文回答問題"
+            ),
+            (
+                "human",
+                (
+                    "Tip: Make sure to answer in the correct format and do "
+                    "not include any explanations. "
+                    "Use the given format to extract information from the "
+                    "following input: {input}"
+                ),
+            ),
+        ]
+    )
+    return prompt
 
 def my_create_simple_model(
     node_labels: Optional[List[str]] = None,
