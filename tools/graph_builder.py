@@ -23,7 +23,7 @@ class TwlfGraphBuilder:
         self._tag_node_id_map = {}  # tag, node_id, 用以記憶每個tag node 的 id, 減少查詢
         self.chunk_docs: List[Document] = []
         self.chunk_list: List[dict] = []
-        self.graph_documents: List[GraphDocument] = []
+        self.graph_document: GraphDocument | None = None
         self._max_thread = max_thread
         
     def graph_build(self, doc_pages: List[Document], spliter=None, tags: List[str] | None = None):
@@ -40,63 +40,59 @@ class TwlfGraphBuilder:
         # filename: document_node
         document = {}  # keys [document, node]
         pre_node = None
-        graph_document: GraphDocument = None
-        graph_document_id_properties: dict[str, dict] = {}
-        for page in doc_pages:
-            path = page.metadata['source']
-            filename = os.path.basename(path)
-            doc_properties = {
-                'filename': filename,
-                'file_path': path,
-                'total_page_num': len(doc_pages)
-            }
-            document['node'] = Node(id=str(uuid()), type='__Document__')
-            document['document'] = Document(page_content="")
-            pre_node = document['node']
-            graph_document_id_properties[document['node'].id] = doc_properties
-            graph_document = GraphDocument(
-                nodes=[], relationships=[], source=document['document'])
-            self.graph_documents.append(graph_document)
-            for tag in tags:
-                tag_node = self._get_tagnode(tag)
-                self._tag_node_id_map[tag] = tag_node.id
-                graph_document.nodes.append(tag_node)
-                tag_relationship = Relationship(
-                    source=document['node'], target=tag_node, type='TAG')
-                graph_document.relationships.append(tag_relationship)
+        self.graph_document: GraphDocument = None
+        page = doc_pages[0]
+        path = page.metadata['source']
+        filename = os.path.basename(path)
+        doc_properties = {
+            'filename': filename,
+            'file_path': path,
+            'total_page_num': len(doc_pages)
+        }
+        document['node'] = Node(id=str(uuid()), type='__Document__')
+        document['document'] = Document(page_content="")
+        pre_node = document['node']
+        self.graph_document = GraphDocument(
+            nodes=[], relationships=[], source=document['document'])
+        for tag in tags:
+            tag_node = self._get_tagnode(tag)
+            self._tag_node_id_map[tag] = tag_node.id
+            self.graph_document.nodes.append(tag_node)
+            tag_relationship = Relationship(
+                source=document['node'], target=tag_node, type='TAG')
+            self.graph_document.relationships.append(tag_relationship)
 
-            for page_idx, page in enumerate(doc_pages):
-                page_content = page.page_content
-                split_texts = spliter.split_text(page_content)
-                for text in split_texts:
-                    text = self._bad_chars_clear(text)
-                    properties = {
-                        'content': text,
-                    }
-                    metadata = {
-                        'source': page.metadata['source'],
-                        'page_number': page_idx + 1
-                    }
+        for page_idx, page in enumerate(doc_pages):
+            page_content = page.page_content
+            split_texts = spliter.split_text(page_content)
+            for text in split_texts:
+                text = self._bad_chars_clear(text)
+                properties = {
+                    'content': text,
+                }
+                metadata = {
+                    'source': page.metadata['source'],
+                    'page_number': page_idx + 1
+                }
 
-                    chunk_node = Node(id=str(uuid()), type='__Chunk__',
-                                    properties=properties)
-                    chunk_doc = Document(page_content=text, metadata=metadata)
-                    self.chunk_list.append(
-                        {'chunk_id': chunk_node.id, 'chunk_doc': chunk_doc})
-                    self.chunk_docs.append(chunk_doc)
-                    graph_document.nodes.append(chunk_node)
-                    relationship = Relationship(
-                        source=pre_node, target=chunk_node, type='NEXT')
-                    relationship_part = Relationship(
-                        source=document['node'], target=chunk_node, type='PART')
-                    graph_document.relationships.append(relationship)
-                    graph_document.relationships.append(relationship_part)
-                    pre_node = chunk_node
+                chunk_node = Node(id=str(uuid()), type='__Chunk__',
+                                  properties=properties)
+                chunk_doc = Document(page_content=text, metadata=metadata)
+                self.chunk_list.append(
+                    {'chunk_id': chunk_node.id, 'chunk_doc': chunk_doc})
+                self.chunk_docs.append(chunk_doc)
+                self.graph_document.nodes.append(chunk_node)
+                relationship = Relationship(
+                    source=pre_node, target=chunk_node, type='NEXT')
+                relationship_part = Relationship(
+                    source=document['node'], target=chunk_node, type='PART')
+                self.graph_document.relationships.append(relationship)
+                self.graph_document.relationships.append(relationship_part)
+                pre_node = chunk_node
 
-        self.graph.add_graph_documents(self.graph_documents)
-        for key, doc_properties in graph_document_id_properties.items():
-            self._update_node_properties(key, doc_properties)
-        return self.graph_documents
+        self.graph.add_graph_documents([self.graph_document])
+        self._update_node_properties(document['node'].id, doc_properties)
+        return self.graph_document
 
     def _get_tagnode(self, tag_name):
         tag_properties = {
