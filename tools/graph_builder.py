@@ -14,14 +14,17 @@ from concurrent.futures import ThreadPoolExecutor
 
 from tools.TWLF_LLMGraphTransformer import TWLF_LLMGraphTransformer
 
+from tqdm import tqdm
+
 
 class TwlfGraphBuilder:
-    def __init__(self, graph: Neo4jGraph):
+    def __init__(self, graph: Neo4jGraph, max_thread=10):
         self.graph = graph
         self._tag_node_id_map = {}  # tag, node_id, 用以記憶每個tag node 的 id, 減少查詢
         self.chunk_docs: List[Document] = []
         self.chunk_list: List[dict] = []
         self.graph_document: GraphDocument | None = None
+        self._max_thread = max_thread
         
     def graph_build(self, doc_pages: List[Document], spliter=None, tags: List[str] | None = None):
         '''
@@ -242,17 +245,14 @@ class TwlfGraphBuilder:
     ):
         futures = []
         graph_document_list = []
-        if llm.get_name() == "ChatOllama":
-            node_properties = False
-        else:
-            node_properties = ["description"]
+        node_properties = ["description"]
         llm_transformer = TWLF_LLMGraphTransformer(
             llm=llm,
             node_properties=node_properties,
             allowed_nodes=allowedNodes,
             allowed_relationships=allowedRelationship,
         )
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=self._max_thread) as executor:
             for chunk in combined_chunk_document_list:
                 chunk_doc = Document(
                     page_content=chunk.page_content.encode("utf-8"), metadata=chunk.metadata
@@ -262,7 +262,7 @@ class TwlfGraphBuilder:
                         llm_transformer.convert_to_graph_documents, [chunk_doc])
                 )
 
-            for i, future in enumerate(concurrent.futures.as_completed(futures)):
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(combined_chunk_document_list)):
                 graph_document = future.result()
                 graph_document_list.append(graph_document[0])
 
