@@ -2,3 +2,4 @@ neo4j/data/*
 *.pyc
 embedding_model/
 model/
+.ipynb_checkpoints/
