@@ -14,6 +14,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 from tools.TWLF_LLMGraphTransformer import TWLF_LLMGraphTransformer
 
+from tqdm import tqdm
+
 
 class TwlfGraphBuilder:
     def __init__(self, graph: Neo4jGraph, max_thread=10):
@@ -260,7 +262,7 @@ class TwlfGraphBuilder:
                         llm_transformer.convert_to_graph_documents, [chunk_doc])
                 )
 
-            for i, future in enumerate(concurrent.futures.as_completed(futures)):
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(combined_chunk_document_list)):
                 graph_document = future.result()
                 graph_document_list.append(graph_document[0])
 
