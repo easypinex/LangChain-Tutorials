@@ -21,100 +21,92 @@ class TwlfGraphBuilder:
     def __init__(self, graph: Neo4jGraph, max_thread=10):
         self.graph = graph
         self._tag_node_id_map = {}  # tag, node_id, 用以記憶每個tag node 的 id, 減少查詢
-        self.chunk_docs: List[Document] = []
-        self.chunk_list: List[dict] = []
-        self.graph_document: GraphDocument | None = None
         self._max_thread = max_thread
-        
-    def graph_build(self, doc_pages: List[Document], spliter=None, tags: List[str] | None = None):
-        '''
-        自動建立圖樹
-        '''
-        if len(doc_pages) == 0:
+        self._source_doc_map = {}
+
+    def graph_build(self, docs: List[Document], spliter=None):
+        """_summary_
+
+        Args:
+            docs (List[Document]): 所有的Document文檔
+            spliter (optional): LangChain任意Spliter皆可, 只要有 split_text(str)即可. Defaults to None.
+            tags (List[str] | None, optional): _description_. Defaults to None.
+
+        Returns:
+            chunks (List[dict]): 
+                {'chunk_id': uuid,'chunk_doc': Document }
+        """        
+        if len(docs) == 0:
             return
         if spliter is None:
             spliter = RecursiveCharacterTextSplitter(
                 chunk_size=300, chunk_overlap=30, separators=['\n\n', '，', '。', '【', ','])
-        if tags is None:
-            tags = []
-        # filename: document_node
-        document = {}  # keys [document, node]
-        pre_node = None
-        self.graph_document: GraphDocument = None
-        page = doc_pages[0]
-        path = page.metadata['source']
-        filename = os.path.basename(path)
-        doc_properties = {
-            'filename': filename,
-            'file_path': path,
-            'total_page_num': len(doc_pages)
-        }
-        document['node'] = Node(id=str(uuid()), type='__Document__')
-        document['document'] = Document(page_content="")
-        pre_node = document['node']
-        self.graph_document = GraphDocument(
-            nodes=[], relationships=[], source=document['document'])
-        for tag in tags:
-            tag_node = self._get_tagnode(tag)
-            self._tag_node_id_map[tag] = tag_node.id
-            self.graph_document.nodes.append(tag_node)
-            tag_relationship = Relationship(
-                source=document['node'], target=tag_node, type='TAG')
-            self.graph_document.relationships.append(tag_relationship)
-
-        for page_idx, page in enumerate(doc_pages):
-            page_content = page.page_content
+        chunks = [] # final result
+        for doc in docs:
+            doc_metadata = doc.metadata
+            source = None
+            if doc_metadata is not None and 'source' in doc_metadata:
+                source = doc_metadata['source']
+            document_dict = self._get_source_document(source)
+            pre_node = document_dict['pre_node']
+            graph_document = document_dict['graph_document']
+            document = document_dict['document']
+            page_content = doc.page_content
             split_texts = spliter.split_text(page_content)
             for text in split_texts:
                 text = self._bad_chars_clear(text)
                 properties = {
+                    'source': source,
                     'content': text,
+                    'page_number':  document.metadata['total_page_num']
                 }
-                metadata = {
-                    'source': page.metadata['source'],
-                    'page_number': page_idx + 1
-                }
-
                 chunk_node = Node(id=str(uuid()), type='__Chunk__',
-                                  properties=properties)
-                chunk_doc = Document(page_content=text, metadata=metadata)
-                self.chunk_list.append(
+                                    properties=properties)
+                chunk_doc = Document(page_content=text, metadata=properties)
+                chunks.append(
                     {'chunk_id': chunk_node.id, 'chunk_doc': chunk_doc})
-                self.chunk_docs.append(chunk_doc)
-                self.graph_document.nodes.append(chunk_node)
+                graph_document.nodes.append(chunk_node)
                 relationship = Relationship(
                     source=pre_node, target=chunk_node, type='NEXT')
                 relationship_part = Relationship(
-                    source=document['node'], target=chunk_node, type='PART')
-                self.graph_document.relationships.append(relationship)
-                self.graph_document.relationships.append(relationship_part)
-                pre_node = chunk_node
+                    source=document_dict['node'], target=chunk_node, type='PART')
+                graph_document.relationships.append(relationship)
+                graph_document.relationships.append(relationship_part)
+                document_dict['pre_node'] = chunk_node
+            self.graph.add_graph_documents([graph_document])
+            self._update_node_properties(document_dict['node'].id, document_dict['document'].metadata)
+        return chunks
 
-        self.graph.add_graph_documents([self.graph_document])
-        self._update_node_properties(document['node'].id, doc_properties)
-        return self.graph_document
-
-    def _get_tagnode(self, tag_name):
-        tag_properties = {
-            'name': tag_name
-        }
-        if self._tag_node_id_map.get(tag_name) is not None:
-            tag_node = Node(id=self._tag_node_id_map.get(
-                tag_name), type='Tag', properties=tag_properties)
-            return tag_node
-        tag_query = f"""
-            MATCH (n:Tag {{name: '{tag_name}'}})
-            RETURN n.id as id
+    def _get_source_document(self, source: str):
         """
-        query_results = self.graph.query(tag_query)
-        if len(query_results) == 0:
-            tag_node = Node(id=str(uuid()), type='Tag',
-                            properties=tag_properties)
-            return tag_node
-        tag_dict = query_results[0]
-        tag_node = Node(id=tag_dict['id'], type='Tag',
-                        properties=tag_properties)
-        return tag_node
+        從 source(檔案路徑) 取得 document
+        Args:
+            source (str): 檔案名稱 , 或任何 String
+
+        Returns:
+            document (dict): 
+                {'document': Document, 'node': Node, 'page': int, 'graph_document': GraphDocument, 'pre_node': Document}
+        """        
+        if source in self._source_doc_map:
+            self._source_doc_map[source]['document'].metadata['total_page_num'] += 1
+            return self._source_doc_map[source]
+        
+        document_dict = {}  # keys [document, node]
+        document_dict['node'] = Node(id=str(uuid()), type='__Document__')
+        filename = os.path.basename(source)
+        doc_properties = {
+            'id': document_dict['node'].id,
+            'filename': filename,
+            'file_path': source,
+            'total_page_num': 1,
+        }
+        document_dict['document'] = Document(page_content="", metadata=doc_properties)
+        graph_document = GraphDocument(
+            nodes=[], relationships=[], source=document_dict['document'])
+        document_dict['graph_document'] = graph_document
+        document_dict['pre_node'] = document_dict['node']
+        self._source_doc_map[source] = document_dict
+        return document_dict
 
     def _update_node_properties(self, node_id: str, node_properties: dict) -> List[Dict[str, Any]] | None:
         if len(node_properties) == 0:
@@ -201,7 +193,7 @@ class TwlfGraphBuilder:
             chunkId_chunkDoc_list: [{'chunk_id': str, 'chunk_doc': Document}, ...]
             allowedNodes: List[str] 允許的節點類型(Label)
             allowedRelationship: List[str] 允許的關係
-            
+
         return:
             graph_document_list: List[GraphDocument]
         '''
