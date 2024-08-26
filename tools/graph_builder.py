@@ -200,7 +200,7 @@ class TwlfGraphBuilder:
         combined_chunk_document_list = self._get_combined_chunks(
             chunkId_chunkDoc_list)
         graph_document_list = self._get_graph_document_list(
-            llm, combined_chunk_document_list, allowedNodes, allowedRelationship
+            llm, combined_chunk_document_list, allowedNodes, allowedRelationship, max_retry=2
         )
         return graph_document_list
 
@@ -233,8 +233,9 @@ class TwlfGraphBuilder:
         return combined_chunk_document_list
 
     def _get_graph_document_list(
-        self, llm, combined_chunk_document_list, allowedNodes, allowedRelationship
+        self, llm, combined_chunk_document_list, allowedNodes, allowedRelationship, max_retry=0
     ):
+        
         futures = []
         graph_document_list = []
         node_properties = ["description"]
@@ -245,6 +246,7 @@ class TwlfGraphBuilder:
             allowed_relationships=allowedRelationship,
         )
         futures_to_chunk_doc = {}
+        failed_documents = []
         with ThreadPoolExecutor(max_workers=self._max_thread) as executor:
             for chunk in combined_chunk_document_list:
                 chunk_doc = Document(
@@ -254,15 +256,17 @@ class TwlfGraphBuilder:
                     llm_transformer.convert_to_graph_documents, [chunk_doc]
                 )
                 futures.append(future)
-                futures_to_chunk_doc[future] = chunk_doc  # 關聯 future 和 chunk_doc    
+                futures_to_chunk_doc[future] = chunk  # 關聯 future 和 chunk_doc    
 
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(combined_chunk_document_list)):
                 try:
-                    graph_document = future.result(timeout=10 * 60) # 一個Chunk最多等待10分鐘
+                    graph_document = future.result(timeout=5 * 60) # 一個Chunk最多等待5分鐘
                     graph_document_list.append(graph_document[0])
                 except Exception as e:
-                    chunk_doc = futures_to_chunk_doc[future]
-                    print(f"Error processing document: {chunk_doc.metadata}")
+                    chunk = futures_to_chunk_doc[future]
+                    failed_documents.append(chunk)
+                    print(f"Error processing document: {chunk}")
                     print(e)
-
+        if len(failed_documents) > 0 and max_retry > 0:
+            graph_document_list += self._get_graph_document_list(llm, failed_documents, allowedNodes, allowedRelationship, max_retry-1)
         return graph_document_list
