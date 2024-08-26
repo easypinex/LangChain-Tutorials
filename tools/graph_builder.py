@@ -244,18 +244,25 @@ class TwlfGraphBuilder:
             allowed_nodes=allowedNodes,
             allowed_relationships=allowedRelationship,
         )
+        futures_to_chunk_doc = {}
         with ThreadPoolExecutor(max_workers=self._max_thread) as executor:
             for chunk in combined_chunk_document_list:
                 chunk_doc = Document(
                     page_content=chunk.page_content.encode("utf-8"), metadata=chunk.metadata
                 )
-                futures.append(
-                    executor.submit(
-                        llm_transformer.convert_to_graph_documents, [chunk_doc])
+                future = executor.submit(
+                    llm_transformer.convert_to_graph_documents, [chunk_doc]
                 )
+                futures.append(future)
+                futures_to_chunk_doc[future] = chunk_doc  # 關聯 future 和 chunk_doc    
 
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(combined_chunk_document_list)):
-                graph_document = future.result()
-                graph_document_list.append(graph_document[0])
+                try:
+                    graph_document = future.result()
+                    graph_document_list.append(graph_document[0])
+                except Exception as e:
+                    chunk_doc = futures_to_chunk_doc[future]
+                    print(f"Error processing document: {chunk_doc.metadata}")
+                    print(e)
 
         return graph_document_list
