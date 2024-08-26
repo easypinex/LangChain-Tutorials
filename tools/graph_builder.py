@@ -258,7 +258,7 @@ class TwlfGraphBuilder:
 
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(combined_chunk_document_list)):
                 try:
-                    graph_document = future.result()
+                    graph_document = future.result(timeout=10 * 60) # 一個Chunk最多等待10分鐘
                     graph_document_list.append(graph_document[0])
                 except Exception as e:
                     chunk_doc = futures_to_chunk_doc[future]
