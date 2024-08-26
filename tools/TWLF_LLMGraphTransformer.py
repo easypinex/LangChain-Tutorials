@@ -7,9 +7,9 @@ from langchain_core.prompts import ChatPromptTemplate
 
 class TWLF_LLMGraphTransformer(LLMGraphTransformer):
     '''
-    由於原生 LLMGraphTransformer node_properties 並不支援參數為必填(預設都是讓LLM選填)
-    
-    因此需要透過自定義來處理為每個 node_propertie 都為必填
+    1. 由於原生 LLMGraphTransformer node_properties 並不支援參數為必填(預設都是讓LLM選填)
+        因此需要透過自定義來處理為每個 node_propertie 都為必填
+    2. System Prompt 提示使用繁體中文回應問題
     
     '''
     def __init__(self, **kwargs):
