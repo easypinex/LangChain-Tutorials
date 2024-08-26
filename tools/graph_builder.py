@@ -48,12 +48,12 @@ class TwlfGraphBuilder:
             if doc_metadata is not None and 'source' in doc_metadata:
                 source = doc_metadata['source']
             document_dict = self._get_source_document(source)
-            pre_node = document_dict['pre_node']
             graph_document = document_dict['graph_document']
             document = document_dict['document']
             page_content = doc.page_content
             split_texts = spliter.split_text(page_content)
             for text in split_texts:
+                pre_node = document_dict['pre_node']
                 text = self._bad_chars_clear(text)
                 properties = {
                     'source': source,
