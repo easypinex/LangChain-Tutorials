@@ -239,11 +239,13 @@ class TwlfGraphBuilder:
         futures = []
         graph_document_list = []
         node_properties = ["description"]
+        relationship_properties = ["description"]
         llm_transformer = TWLF_LLMGraphTransformer(
             llm=llm,
             node_properties=node_properties,
             allowed_nodes=allowedNodes,
             allowed_relationships=allowedRelationship,
+            relationship_properties=relationship_properties
         )
         futures_to_chunk_doc = {}
         failed_documents = []
