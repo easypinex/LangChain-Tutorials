@@ -12,7 +12,7 @@ model = AzureChatOpenAI(
 from langchain_openai import AzureOpenAIEmbeddings
 emb = AzureOpenAIEmbeddings(
     model="text-embedding-ada-002",
-    azure_endpoint='https://lang-chain-dev.openai.azure.com/openai/deployments/text-embedding-ada-002/embeddings?api-version=2023-05-15',
+    azure_endpoint='https://sales-chatbot-llm.openai.azure.com/openai/deployments/embedding-ada-002/embeddings?api-version=2023-05-15',
     azure_deployment='text-embedding-ada-002',
     openai_api_version='2023-05-15'
 )
