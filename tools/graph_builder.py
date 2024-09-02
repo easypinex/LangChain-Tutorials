@@ -130,7 +130,7 @@ class TwlfGraphBuilder:
                 text = text.replace(bad_char, ' ')
             else:
                 text = text.replace(bad_char, '')
-        return text
+        return text.strip()
 
     def get_chunk_and_graphDocument(self, graph_document_list: List[GraphDocument]) -> List[dict]:
         '''
