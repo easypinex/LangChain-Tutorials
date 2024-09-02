@@ -1,10 +1,13 @@
 # ! pip install sseclient-py
+
+QUESTION = '首期繳費有哪些方式?'
+
 import sseclient
 import uuid
 input_json = {
     "input": {
         "history": [],
-        "input": "繳費方式"
+        "input": QUESTION
     },
     "config": {
         "configurable": {
