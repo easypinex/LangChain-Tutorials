@@ -17,8 +17,8 @@ URL = 'http://localhost:8000/stream_events'
 
 input_json = {
     "input": {
-        "history": [],
-        "input": QUESTION
+        "chat_history": [],
+        "question": QUESTION
     },
     "config": {
         "configurable": {
