@@ -1,9 +1,20 @@
+'''
+示例如何透過 LangServe, 提供之API stream_events, 獲取RAG資訊以及回應內容
+'''
+
+import uuid
+import json
+from copy import deepcopy
+
+import sseclient
+import requests
+
+
 # ! pip install sseclient-py
 
 QUESTION = '首期繳費有哪些方式?'
+URL = 'http://localhost:8000/stream_events'
 
-import sseclient
-import uuid
 input_json = {
     "input": {
         "history": [],
@@ -16,12 +27,7 @@ input_json = {
     }
 }
 
-import requests
-import json
-from copy import deepcopy
-
-url = 'http://localhost:8000/stream_events'
-stream_response = requests.post(url, json=input_json, stream=True)
+stream_response = requests.post(URL, json=input_json, stream=True, timeout=15)
 
 client = sseclient.SSEClient(stream_response)
 for event in client.events():
