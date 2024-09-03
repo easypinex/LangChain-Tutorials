@@ -1,4 +1,4 @@
-"langserve[all]"
+langserve[all]
 langchain
 langchain-huggingface
 text-generation
