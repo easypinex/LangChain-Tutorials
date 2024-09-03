@@ -29,7 +29,7 @@ for event in client.events():
     name = data.get('name')
     event = data.get('event')
     tags = data['tags']
-    if (event == 'on_retriever_end' and name == 'Retriever'):
+    if event == 'on_retriever_end' and name == 'Retriever':
         isGraphRAG = 'GraphRAG' in tags
         documents = data['data']['output']['documents']
         for document in documents:
@@ -44,6 +44,9 @@ for event in client.events():
             print('內文: ' + content)
             print('參數: ' + str(metadata))
             print('-' * 40)
+    elif event == 'on_parser_end' and 'contextualize_question' in tags:
+        print('問題更新: ' + data['data']['output'])
+        print('-' * 40)
     elif 'final_output' in tags:
         chunk = data['data'].get('chunk')
         if chunk is not None:
