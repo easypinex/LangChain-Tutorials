@@ -59,3 +59,14 @@ for event in client.events():
             print(chunk, end="")
 print("")
 print("-" * 40)
+
+
+from typing import Tuple, Optional
+
+class MyObj:
+    pass
+
+def my_function() -> Tuple[Optional[str], Optional[MyObj]]:
+    return None, None
+
+a, b = my_function()
