@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableMap, RunnablePassthrough
 from langchain_chroma import Chroma
 
 from langserve import add_routes
-from langserve.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 import os
 from langchain_openai import AzureChatOpenAI

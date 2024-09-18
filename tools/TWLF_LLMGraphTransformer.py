@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from langchain_experimental.graph_transformers import LLMGraphTransformer
 from langchain_experimental.graph_transformers.llm import default_prompt, _Graph, optional_enum_field, system_prompt
-from pydantic.v1 import BaseModel, Field, create_model
+from pydantic import BaseModel, Field, create_model
 
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -105,7 +105,7 @@ def my_create_simple_model(
     node_fields: Dict[str, Tuple[Any, Any]] = {
         "id": (
             str,
-            Field(..., description="Name or human-readable unique identifier.")
+            Field(..., description="Name or human-readable unique identifier."),
         ),
         "type": (
             str,
@@ -128,6 +128,7 @@ def my_create_simple_model(
 
         class Property(BaseModel):
             """A single property consisting of key and value"""
+
             key: str = optional_enum_field(
                 node_properties_mapped,
                 description="Property key.",
@@ -138,9 +139,8 @@ def my_create_simple_model(
 
         node_fields["properties"] = (
             Optional[List[Property]],
-            Field(..., description="List of node properties") # 這裡從 None -> ...(變成必填)
+            Field(..., description="List of node properties"), # 這裡從 None -> ...(變成必填)
         )
-    # global SIMPLE_NODE
     SimpleNode = create_model("SimpleNode", **node_fields)  # type: ignore
 
     relationship_fields: Dict[str, Tuple[Any, Any]] = {
@@ -149,7 +149,7 @@ def my_create_simple_model(
             Field(
                 ...,
                 description="Name or human-readable unique identifier of source node",
-            )
+            ),
         ),
         "source_node_type": (
             str,
@@ -165,7 +165,7 @@ def my_create_simple_model(
             Field(
                 ...,
                 description="Name or human-readable unique identifier of target node",
-            )
+            ),
         ),
         "target_node_type": (
             str,
@@ -212,14 +212,13 @@ def my_create_simple_model(
 
         relationship_fields["properties"] = (
             Optional[List[RelationshipProperty]],
-            Field(..., description="List of relationship properties") # 使RelationshipProperty成為必填
+            Field(..., description="List of relationship properties"),  # 這裡從 None -> ...(變成必填)
         )
     SimpleRelationship = create_model("SimpleRelationship", **relationship_fields)  # type: ignore
 
     class DynamicGraph(_Graph):
-        class Config:
-            arbitrary_types_allowed = True
         """Represents a graph document consisting of nodes and relationships."""
+
         nodes: Optional[List[SimpleNode]] = Field(description="List of nodes")  # type: ignore
         relationships: Optional[List[SimpleRelationship]] = Field(  # type: ignore
             description="List of relationships"

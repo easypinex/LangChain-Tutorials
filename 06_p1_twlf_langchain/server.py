@@ -114,7 +114,7 @@ app = FastAPI(
 
 # 5. Adding chain route
 
-from langserve.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_core.messages import AIMessage, FunctionMessage, HumanMessage
 from typing import Any, List, Optional, Union
 # We need to add these input/output schemas because the current AgentExecutor
