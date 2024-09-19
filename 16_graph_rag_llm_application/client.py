@@ -35,9 +35,9 @@ for event in client.events():
     name = data.get('name')
     event = data.get('event')
     tags = data['tags']
-    if event == 'on_retriever_end' and name == 'Retriever':
+    if event == 'on_retriever_end' and 'Retriever' in name:
         isGraphRAG = 'GraphRAG' in tags
-        documents = data['data']['output']['documents']
+        documents = data['data']['output']
         for document in documents:
             print('來源: ' + ('【Graph】' if isGraphRAG else document['metadata']['source']))
             content = document['page_content'].strip()
@@ -57,5 +57,8 @@ for event in client.events():
         chunk = data['data'].get('chunk')
         if chunk is not None:
             print(chunk, end="")
+    # else:
+    #     print(f'event: {event}, name: {name}, tags: {tags}, data:{data}')
+    #     print('-' * 40)
 print("")
 print("-" * 40)
