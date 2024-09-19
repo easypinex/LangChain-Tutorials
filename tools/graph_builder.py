@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 
 class TwlfGraphBuilder:
-    def __init__(self, graph: Neo4jGraph, max_thread=10):
+    def __init__(self, graph: Neo4jGraph, max_thread=5):
         self.graph = graph
         self._tag_node_id_map = {}  # tag, node_id, 用以記憶每個tag node 的 id, 減少查詢
         self._max_thread = max_thread
