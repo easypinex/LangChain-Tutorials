@@ -48,6 +48,14 @@ class PDFTablePyPlumberLoader:
                         merge_table_candidates.clear()
                     else:
                         document_packer.tables.append(table)
+                        
+        if len(merge_table_candidates) > 0:
+            # 還有剩餘的待合併清單
+            first_table = merge_table_candidates[0]
+            for merge_table_candi in merge_table_candidates:
+                page_document_dict[first_table.page].tables.append(merge_table_candi)
+            merge_table_candidates.clear()
+            
         result: List[Document] = []
         llm_tasks: List[Tuple[DocumentPacker, str]] = []
         for documnet_packer in document_packers:
@@ -80,7 +88,7 @@ class PDFTablePyPlumberLoader:
         prompt = ChatPromptTemplate.from_messages([
             (
                 "system",
-                "你是一個資訊整理專家，以Markdown格式輸出以下表格知識，並包含完整資訊，以繁體中文回應",
+                "你是一個資訊整理專家，以Markdown格式輸出以下知識，但是不使用表格輸出，並包含完整資訊，以繁體中文回應",
             ),
             (
                 "human",
@@ -102,6 +110,7 @@ class PDFTablePyPlumberLoader:
             # Submitting all tasks and creating a list of future objects
             for document_packer, list_str in llm_tasks:
                 future = executor.submit(table_description, document_packer, list_str)
+                futures.append(future)
             for future in tqdm(
                 as_completed(futures), total=len(futures), desc="Processing documents"
             ):
@@ -178,7 +187,7 @@ class DocumentPacker:
                     table.parent_table = larger_table
                     self.tables.remove(table.table)
                     break  # 一旦表格被歸屬，停止當前表格的進一步檢查
-        self.tableareas = [table for table in tableareas if table.parent_table is None]
+        self.tableareas = [table for table in tableareas]
 
 class TableArea:
     def __init__(self, table: Table):
@@ -208,6 +217,7 @@ class TableArea:
     @property
     def y2(self):
         return self.table.bbox[3]
+    
     @property
     def width(self):
         return self.x2 - self.x1
