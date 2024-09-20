@@ -100,10 +100,15 @@ class PDFTablePyPlumberLoader:
         )
         desc_chain = prompt | desc_llm
         
-        def table_description(document_packer: DocumentPacker, list_str: str) -> str:
-            desc = desc_chain.invoke({"list_str": list_str}).description
-            if desc:
-                document_packer.document.page_content += '\n\n' + desc
+        def table_description(document_packer: DocumentPacker, list_str: str):
+            try:
+                desc = desc_chain.invoke({"list_str": list_str}).description
+                if desc:
+                    document_packer.document.page_content += '\n\n' + desc
+            except Exception as e:
+                print(e)
+                document_packer.document.page_content += '\n\n' + list_str
+                
 
         futures = []
         with ThreadPoolExecutor(max_workers=5) as executor:
