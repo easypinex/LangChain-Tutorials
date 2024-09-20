@@ -25,3 +25,4 @@ langchain-ollama
 sseclient-py
 pypdf
 jupyter
+pdfplumber
