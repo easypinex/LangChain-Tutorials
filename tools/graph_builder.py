@@ -24,6 +24,58 @@ class TwlfGraphBuilder:
         self._max_thread = max_thread
         self._source_doc_map = {}
 
+    def build_chunk_graph_with_parent_child(self, docs_pages: List[List[Document]], parent_split_kwarg=None, child_split_kwarg=None):
+        if len(docs_pages) == 0:
+            return
+        chunks = [] # final result
+        if parent_split_kwarg is None:
+            parent_split_kwarg = {'chunk_size': 1200, 'chunk_overlap': 200, 'separators': ['\n\n', '。', '【',]}
+        if child_split_kwarg is None:
+            child_split_kwarg = {'chunk_size': 300, 'chunk_overlap': 30, 'separators': ['\n\n', '。', '【',]}
+        for doc_pages in docs_pages:
+            doc = self._merge_all_pages(doc_pages)
+            doc.page_content = self._bad_chars_clear(doc.page_content)
+            # 建立/取得 根 Document / Node
+            root_source = doc.metadata.get('source')
+            root_document_dict = self._get_source_document(root_source, total_page=len(doc_pages))
+            root_graph_document: GraphDocument = root_document_dict['graph_document']
+            root_document: Document = root_document_dict['document']
+            root_node: Node = root_document_dict['node']
+            # 建立分割器
+            parent_split = RecursiveCharacterTextSplitter(**parent_split_kwarg)
+            child_split = RecursiveCharacterTextSplitter(**child_split_kwarg)
+            # 建立 父 Document
+            parent_docs = parent_split.split_documents([doc])
+            for parent_doc in parent_docs:
+                # 建立父 Node
+                properties = {
+                    'source': root_source,
+                    'content': parent_doc.page_content
+                }
+                parent_node = Node(id=str(uuid()), type='__Parent__', properties=properties)
+                # 關聯 主文件 -> 父節點 
+                root_graph_document.nodes.append(parent_node)
+                # 建立 關係 root_node -> parent_node
+                root_graph_document.relationships.append(Relationship(source=parent_node, target=root_node, type='PART_OF'))
+                root_document_dict['pre_node'] = parent_node
+                # 開始建立子節點 (Chunk)
+                child_docs = child_split.split_documents([parent_doc])
+                for child_doc in child_docs:
+                    # 建立子 Node
+                    properties = {
+                        'source': root_source,
+                        'content': child_doc.page_content
+                    }
+                    child_node = Node(id=str(uuid()), type='__Chunk__', properties=properties)
+                    # 關聯 父節點 -> 子節點 
+                    root_graph_document.nodes.append(child_node)
+                    # 建立 關係 parent_node -> child_node
+                    root_graph_document.relationships.append(Relationship(source=parent_node, target=child_node, type='HAS_CHILD'))
+                    chunks.append({'chunk_id': child_node.id, 'chunk_doc': child_doc})
+        self.graph.add_graph_documents([root_graph_document])
+        self._update_node_properties(root_node.id, root_document.metadata)
+        return chunks
+        
     def graph_build(self, docs: List[Document], spliter=None):
         """_summary_
 
@@ -77,7 +129,7 @@ class TwlfGraphBuilder:
             self._update_node_properties(document_dict['node'].id, document_dict['document'].metadata)
         return chunks
 
-    def _get_source_document(self, source: str):
+    def _get_source_document(self, source: str, total_page=None):
         """
         從 source(檔案路徑) 取得 document
         Args:
@@ -85,20 +137,25 @@ class TwlfGraphBuilder:
 
         Returns:
             document (dict): 
-                {'document': Document, 'node': Node, 'page': int, 'graph_document': GraphDocument, 'pre_node': Document}
+                {'document': Document, 
+                'node': Node, 
+                'page': int, 
+                'graph_document': GraphDocument, 
+                'pre_node': Document}
         """        
         if source in self._source_doc_map:
             self._source_doc_map[source]['document'].metadata['total_page_num'] += 1
             return self._source_doc_map[source]
         
         document_dict = {}  # keys [document, node]
-        document_dict['node'] = Node(id=str(uuid()), type='__Document__')
+        document_node = Node(id=str(uuid()), type='__Document__')
+        document_dict['node'] = document_node
         filename = os.path.basename(source)
         doc_properties = {
-            'id': document_dict['node'].id,
+            'id': document_node.id,
             'filename': filename,
             'file_path': source,
-            'total_page_num': 1,
+            'total_page_num': 1 if total_page is None else total_page,
         }
         document_dict['document'] = Document(page_content="", metadata=doc_properties)
         graph_document = GraphDocument(
@@ -108,6 +165,12 @@ class TwlfGraphBuilder:
         self._source_doc_map[source] = document_dict
         return document_dict
 
+    def _merge_all_pages(self, docs: List[Document]) -> Document:
+        if len(docs) == 0:
+            return None
+        doc = Document(page_content="\n".join([doc.page_content for doc in docs]), metadata={'source': docs[0].metadata.get('source'), 'total_page_num': len(docs)})
+        return doc
+    
     def _update_node_properties(self, node_id: str, node_properties: dict) -> List[Dict[str, Any]] | None:
         if len(node_properties) == 0:
             return None
@@ -204,7 +267,7 @@ class TwlfGraphBuilder:
         )
         return graph_document_list
 
-    def _get_combined_chunks(self, chunkId_chunkDoc_list, chunks_to_combine=1):
+    def _get_combined_chunks(self, chunkId_chunkDoc_list, chunks_to_combine=1) -> List[Document]:
         logging.info(
             f"Combining {chunks_to_combine} chunks before sending request to LLM")
         combined_chunk_document_list = []
@@ -233,8 +296,8 @@ class TwlfGraphBuilder:
         return combined_chunk_document_list
 
     def _get_graph_document_list(
-        self, llm, combined_chunk_document_list, allowedNodes, allowedRelationship, max_retry=0
-    ):
+        self, llm, combined_chunk_document_list: List[Document], allowedNodes, allowedRelationship, max_retry=0
+    ) -> List[GraphDocument]:
         
         futures = []
         graph_document_list = []
@@ -247,7 +310,7 @@ class TwlfGraphBuilder:
             allowed_relationships=allowedRelationship,
             relationship_properties=relationship_properties
         )
-        futures_to_chunk_doc = {}
+        futures_to_chunk_doc: Dict[concurrent.futures.Future, Document] = {}
         failed_documents = []
         with ThreadPoolExecutor(max_workers=self._max_thread) as executor:
             for chunk in combined_chunk_document_list:
@@ -262,8 +325,9 @@ class TwlfGraphBuilder:
 
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(combined_chunk_document_list)):
                 try:
-                    graph_document = future.result(timeout=5 * 60) # 一個Chunk最多等待5分鐘
-                    graph_document_list.append(graph_document[0])
+                    graph_documents:List[GraphDocument] = future.result(timeout=5 * 60) # 一個Chunk最多等待5分鐘
+                    graph_doc = graph_documents[0]
+                    graph_document_list.append(graph_doc)
                 except Exception as e:
                     chunk = futures_to_chunk_doc[future]
                     failed_documents.append(chunk)

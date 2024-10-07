@@ -76,6 +76,7 @@ class PDFTablePyPlumberLoader:
         return candidates
 
     def _documnet_table_desc_with_llm(self, llm_tasks: List[Tuple['DocumentPacker', str]]):
+        '''將表格的描述加入到該頁結尾'''
         from pydantic import BaseModel, Field
         from langchain_core.prompts import ChatPromptTemplate
         from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -144,7 +145,6 @@ class PDFTablePyPlumberLoader:
         crop_bbox = (min(crop_bbox[0], table_x0_min), min(crop_bbox[1], table_y0_min), max(crop_bbox[2], table_x1_max), max(crop_bbox[3], table_y0_max))
         return crop_bbox
         
-    
     def _get_merge_top_talbe(self, total_height, merge_table_candidate: List[Table]) -> Table | None:
         '''
         取得貼近頁面頂端的表格

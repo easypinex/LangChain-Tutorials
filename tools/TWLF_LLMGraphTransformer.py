@@ -5,6 +5,10 @@ from pydantic import BaseModel, Field, create_model
 
 from langchain_core.prompts import ChatPromptTemplate
 
+from .logger import getLogger
+
+logging = getLogger()
+
 class TWLF_LLMGraphTransformer(LLMGraphTransformer):
     '''
     1. 由於原生 LLMGraphTransformer node_properties, relationship_properties 並不支援參數為必填(預設都是讓LLM選填)
