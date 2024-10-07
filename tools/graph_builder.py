@@ -187,7 +187,7 @@ class TwlfGraphBuilder:
 
     def _bad_chars_clear(self, text="", bad_chars: List[str] | None = None):
         if bad_chars is None:
-            bad_chars = ['"', "\n", "'", "..."]
+            bad_chars = ['"', "'", "..."]
         for bad_char in bad_chars:
             if bad_char == '\n':
                 text = text.replace(bad_char, ' ')
