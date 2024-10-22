@@ -4,19 +4,22 @@ import pandas as pd
 import pdfplumber
 from pdfplumber.page import CroppedPage, Page
 from pdfplumber.table import Table
+import logging
+
+logging = logging.getLogger("langchain")
 
 class PDFTablePyPlumberLoader:
     def __init__(self, file_path, llm=None) -> None:
         self.file_path = file_path
         self.llm = llm
 
-    def load(self) -> List[Document]:
+    def load(self, **open_kwargs) -> List[Document]:
 
         merge_table_candidates: List[Table] = []
         page_tables_list:List[List[Table]] = []
         
         document_packers:List[DocumentPacker] = []
-        with pdfplumber.open(self.file_path) as pdf:
+        with pdfplumber.open(self.file_path, **open_kwargs) as pdf:
             pages = pdf.pages
             page_document_dict:Dict[Page, DocumentPacker] = {}
             for idx, page in enumerate(pages):
@@ -234,4 +237,13 @@ class TableArea:
     @property
     def area(self):
         return self.width * self.height
-    
+
+
+if __name__ == '__main__':
+    import os
+    file_path = os.path.join('..', 'data', '新契約個人保險投保規則手冊-核保及行政篇(113年7月版)_業務通路版.pdf')
+    loader = PDFTablePyPlumberLoader(file_path)
+    pages = loader.load(pages=[8, 9, 10, 11, 12])
+    for page in pages:
+        print(page.page_content)
+        print('-' * 40)
