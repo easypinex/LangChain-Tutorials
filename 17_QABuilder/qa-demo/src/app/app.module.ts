@@ -14,6 +14,7 @@ import { MessagesModule } from 'primeng/messages';
 import { MessageService } from 'primeng/api';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TableModule } from 'primeng/table';
+import { ScrollPanelModule } from 'primeng/scrollpanel';
 
 
 @NgModule({
@@ -32,6 +33,7 @@ import { TableModule } from 'primeng/table';
     MessagesModule,
     InputNumberModule,
     TableModule,
+    ScrollPanelModule,
   ],
   providers: [MessageService],
   bootstrap: [AppComponent]

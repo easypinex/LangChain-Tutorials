@@ -64,6 +64,13 @@
       <p-button label="輸出CSV" (click)="export()" icon="pi pi-check" iconPos="right" />
     </div>
 
+    <p *ngIf="this.docs.length > 0">Preview</p>
+    <p-scrollPanel [style]="{ width: '100%', height: '200px' }">
+      <p *ngFor="let doc of this.docs.slice(this.startPage - 1, this.endPage)">
+        {{ doc.page_content }}
+      </p>
+    </p-scrollPanel>
+
   </div>
 
   <!-- 右侧面板 -->

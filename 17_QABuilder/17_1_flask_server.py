@@ -80,12 +80,16 @@ def generate_file_content():
     save_path = os.path.join(save_dir, file.filename)
     file.save(save_path)
     # 使用你提供的 PDF 處理邏輯
-    pages: List[List[Document]] = []
+    pages: List[Document] = []
     loader = PDFTablePyPlumberLoader(save_path, llm)
     pages = loader.load()
-    # delete file
+    # Clean ...
+    for doc in pages:
+        if doc is None or doc.page_content is None:
+            continue
+        doc.page_content = doc.page_content.replace('...', '')
     os.remove(save_path)
-    return jsonify([doc.dict() for doc in pages])
+    return jsonify([doc.model_dump() for doc in pages])
 
 # API 2：接收檔案內容並產生 QA
 @app.route('/generate_qa', methods=['POST'])
