@@ -31,7 +31,7 @@ class QuestionAnswer(BaseModel):
         description="客戶提出的問題"
     )
     answer: str = Field(
-        description="相對應的答案"
+        description="以自然語言回應的答案"
     )
     
 class QuestionAnswerPack(BaseModel):
