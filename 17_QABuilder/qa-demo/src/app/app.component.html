@@ -1,0 +1,98 @@
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * * The content below * * * * * * * * * * * -->
+<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * -->
+<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * -->
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<!-- * * * * * * * * * Delete the template below * * * * * * * * * -->
+<!-- * * * * * * * to get started with your project! * * * * * * * -->
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<div class="container">
+  <!-- 左侧面板 -->
+  <div class="left-panel">
+    <!-- 文件拖拽区域 -->
+    <div class="card flex justify-content-center">
+      <p-toast />
+      <p-fileUpload mode="basic" chooseIcon="pi pi-upload" name="demo[]"
+        url="https://www.primefaces.org/cdn/api/upload.php" accept="application/pdf" [auto]="true"
+        (onUpload)="onUpload($event)" [chooseLabel]="isUploading ? '處理中...' : uploaded ? '已上傳' : '上傳'"
+        (onBeforeUpload)="onBeforeUpload()" [disabled]="isUploading || uploaded" />
+    </div>
+
+    <!-- 设定产生问题的数量 -->
+    <div *ngIf="uploaded" class="inputs">
+      <div class="justify-content-center inputs">
+        <label class="mb-2 block font-bold" for="withoutgrouping">一頁產生幾個問題？</label>
+
+        <p-inputNumber [(ngModel)]="questionCount" [showButtons]="true" buttonLayout="horizontal"
+          inputId="withoutgrouping" spinnerMode="horizontal" [step]="1" decrementButtonClass="p-button-danger"
+          incrementButtonClass="p-button-success" incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus"
+          [max]="50" [min]="1" />
+      </div>
+
+      <!-- PDF 页码输入 -->
+      <div>
+        <div class="inputs">
+          <label class="mb-2 block font-bold" for="start_page">
+            分析起始頁
+          </label>
+          <p-inputNumber [(ngModel)]="startPage" [showButtons]="true" buttonLayout="horizontal" inputId="start_page"
+            spinnerMode="horizontal" [step]="1" decrementButtonClass="p-button-danger"
+            incrementButtonClass="p-button-success" incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus"
+            [max]="maxEndPage" [min]="1" />
+        </div>
+
+      </div>
+      <div class="inputs">
+        <label class="mb-2 block font-bold" for="end_page">
+          分析結束頁
+        </label>
+        <p-inputNumber [(ngModel)]="endPage" [showButtons]="true" buttonLayout="horizontal" inputId="end_page"
+          spinnerMode="horizontal" [step]="1" decrementButtonClass="p-button-danger"
+          incrementButtonClass="p-button-success" incrementButtonIcon="pi pi-plus" decrementButtonIcon="pi pi-minus"
+          [max]="maxEndPage" [min]="1" />
+      </div>
+    </div>
+
+    <!-- 產生QA -->
+    <div *ngIf="uploaded" class="card flex justify-content-center">
+      <p-button [label]="isGenerating ? '處理中...' : '產生QA' " (click)="generateQA()" icon="pi pi-check" iconPos="right"
+        [disabled]="isGenerating" />
+    </div>
+
+    <!-- 產生QA -->
+    <div *ngIf="qas.length > 0" class="card flex justify-content-center">
+      <p-button label="輸出CSV" (click)="export()" icon="pi pi-check" iconPos="right" />
+    </div>
+
+  </div>
+
+  <!-- 右侧面板 -->
+  <div class="right-panel">
+    <p-table #table [value]="qas" [columns]="cols" [tableStyle]="{ 'min-width': '50rem' }" [scrollable]="true"
+      scrollHeight="90vh">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Question</th>
+          <th>Answer</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-qa>
+        <tr>
+          <td>{{ qa.question }}</td>
+          <td>{{ qa.answer }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
+
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * * The content above * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * * -->
+<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * * -->
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * End of Placeholder  * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+
+
+<router-outlet />

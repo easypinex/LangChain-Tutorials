@@ -1,0 +1,39 @@
+.container {
+    display: flex;
+    height: 90vh;
+}
+
+.left-panel {
+    width: 30%;
+    padding: 20px;
+    // background-color: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.right-panel {
+    width: 70%;
+    padding: 20px;
+    // background-color: #fff;
+    // border-left: 1px solid #ddd;
+}
+
+.inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.question-input {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.page-range-inputs {
+    display: flex;
+    gap: 10px;
+}

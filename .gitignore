@@ -3,3 +3,5 @@ neo4j/data/*
 embedding_model/
 model/
 .ipynb_checkpoints/
+tmp/
+.DS_Store
