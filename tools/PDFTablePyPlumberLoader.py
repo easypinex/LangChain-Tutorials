@@ -5,6 +5,7 @@ import pdfplumber
 from pdfplumber.page import CroppedPage, Page
 from pdfplumber.table import Table
 import logging
+import os
 
 logging = logging.getLogger("langchain")
 
@@ -30,7 +31,8 @@ class PDFTablePyPlumberLoader:
                 crop_bbox = self._get_text_crop_box(page, tables)
                 croped_text_page = croped_text_page.crop(crop_bbox)
                 text = croped_text_page.extract_text()
-                document = Document(text, metadata={"source": self.file_path, "page_number": page.page_number})
+                filename = os.path.basename(self.file_path)
+                document = Document(text, metadata={"source": filename, "page_number": page.page_number})
                 page_tables_list.append(tables)
                 document_packer = DocumentPacker(document, self.llm)
                 document_packers.append(document_packer)

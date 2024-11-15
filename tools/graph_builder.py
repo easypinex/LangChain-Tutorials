@@ -230,7 +230,8 @@ class TwlfGraphBuilder:
                 query_data = {
                     'chunk_id': graph_doc_chunk_id['chunk_id'],
                     'node_type': node.type,
-                    'node_id': node.id
+                    'node_id': node.id,
+                    'source': graph_doc_chunk_id['graph_doc'].source.metadata['source']
                 }
                 batch_data.append(query_data)
                 # node_id = node.id
@@ -244,6 +245,7 @@ class TwlfGraphBuilder:
                         MATCH (c:__Chunk__ {id: data.chunk_id})
                         CALL apoc.merge.node([data.node_type], {id: data.node_id}) YIELD node AS n
                         MERGE (c)-[:HAS_ENTITY]->(n)
+                        SET n.sources = coalesce(n.sources, []) + CASE WHEN data.source IS NOT NULL THEN [data.source] ELSE [] END
                     """
             self.graph.query(unwind_query, params={"batch_data": batch_data})
 
@@ -268,6 +270,15 @@ class TwlfGraphBuilder:
         return graph_document_list
 
     def _get_combined_chunks(self, chunkId_chunkDoc_list, chunks_to_combine=1) -> List[Document]:
+        """_summary_
+
+        Args:
+            chunkId_chunkDoc_list (List[Dict[{'chunk_id': ..., 'chunk_doc': Document}]]): Chunk列表
+            chunks_to_combine (int, optional): 幾個 Chunk 進行合併. 不合併 Defaults to 1.
+
+        Returns:
+            List[Document]: 合併後的 Document
+        """        
         logging.info(
             f"Combining {chunks_to_combine} chunks before sending request to LLM")
         combined_chunk_document_list = []
@@ -285,12 +296,17 @@ class TwlfGraphBuilder:
             ]
             for i in range(0, len(chunkId_chunkDoc_list), chunks_to_combine)
         ]
+        combined_metadatas = [
+            chunkId_chunkDoc_list[i]['chunk_doc'].metadata for i in range(0, len(chunkId_chunkDoc_list), chunks_to_combine)
+        ]
 
         for i in range(len(combined_chunks_page_content)):
+            metadata = combined_metadatas[i]
+            metadata['combined_chunk_ids'] = combined_chunks_ids[i]
             combined_chunk_document_list.append(
                 Document(
                     page_content=combined_chunks_page_content[i],
-                    metadata={"combined_chunk_ids": combined_chunks_ids[i]},
+                    metadata=metadata,
                 )
             )
         return combined_chunk_document_list
