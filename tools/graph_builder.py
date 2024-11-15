@@ -12,6 +12,8 @@ import logging
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 
+from dto.GraphGraphDetails import GraphGraphDetails
+from dto.TwlfGraphBuildResult import TwlfGraphBuildResult
 from tools.TWLF_LLMGraphTransformer import TWLF_LLMGraphTransformer
 
 from tqdm import tqdm
@@ -24,14 +26,15 @@ class TwlfGraphBuilder:
         self._max_thread = max_thread
         self._source_doc_map = {}
 
-    def build_chunk_graph_with_parent_child(self, docs_pages: List[List[Document]], parent_split_kwarg=None, child_split_kwarg=None):
+    def build_chunk_graph_with_parent_child(self, docs_pages: List[List[Document]], parent_split_kwarg=None, child_split_kwarg=None) -> TwlfGraphBuildResult:
         if len(docs_pages) == 0:
             return
         chunks = [] # final result
         if parent_split_kwarg is None:
-            parent_split_kwarg = {'chunk_size': 1200, 'chunk_overlap': 200, 'separators': ['\n\n', '。', '【',]}
+            parent_split_kwarg = {'chunk_size': 1200, 'chunk_overlap': 200, 'separators': ['\n\n', '【.*】'], 'is_separator_regex': True}
         if child_split_kwarg is None:
-            child_split_kwarg = {'chunk_size': 300, 'chunk_overlap': 30, 'separators': ['\n\n', '。', '【',]}
+            child_split_kwarg = {'chunk_size': 300, 'chunk_overlap': 30, 'separators': ['\n\n', '【.*】'], 'is_separator_regex': True}
+        result: TwlfGraphBuildResult = TwlfGraphBuildResult()
         for doc_pages in docs_pages:
             doc = self._merge_all_pages(doc_pages)
             doc.page_content = self._bad_chars_clear(doc.page_content)
@@ -72,8 +75,9 @@ class TwlfGraphBuilder:
                     # 建立 關係 parent_node -> child_node
                     root_graph_document.relationships.append(Relationship(source=parent_node, target=child_node, type='HAS_CHILD'))
                     chunks.append({'chunk_id': child_node.id, 'chunk_doc': child_doc})
-        
-        return chunks, root_graph_document, root_document, root_node
+            result.details.append(GraphGraphDetails(root_document, root_node, root_graph_document))
+        result.chunks = chunks
+        return result
         
     # def graph_build(self, docs: List[Document], spliter=None):
     #     """_summary_
