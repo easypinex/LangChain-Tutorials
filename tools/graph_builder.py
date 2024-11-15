@@ -72,62 +72,61 @@ class TwlfGraphBuilder:
                     # 建立 關係 parent_node -> child_node
                     root_graph_document.relationships.append(Relationship(source=parent_node, target=child_node, type='HAS_CHILD'))
                     chunks.append({'chunk_id': child_node.id, 'chunk_doc': child_doc})
-        self.graph.add_graph_documents([root_graph_document])
-        self._update_node_properties(root_node.id, root_document.metadata)
-        return chunks
         
-    def graph_build(self, docs: List[Document], spliter=None):
-        """_summary_
+        return chunks, root_graph_document, root_document, root_node
+        
+    # def graph_build(self, docs: List[Document], spliter=None):
+    #     """_summary_
 
-        Args:
-            docs (List[Document]): 所有的Document文檔
-            spliter (optional): LangChain任意Spliter皆可, 只要有 split_text(str)即可. Defaults to None.
-            tags (List[str] | None, optional): _description_. Defaults to None.
+    #     Args:
+    #         docs (List[Document]): 所有的Document文檔
+    #         spliter (optional): LangChain任意Spliter皆可, 只要有 split_text(str)即可. Defaults to None.
+    #         tags (List[str] | None, optional): _description_. Defaults to None.
 
-        Returns:
-            chunks (List[dict]): 
-                {'chunk_id': uuid,'chunk_doc': Document }
-        """        
-        if len(docs) == 0:
-            return
-        if spliter is None:
-            spliter = RecursiveCharacterTextSplitter(
-                chunk_size=300, chunk_overlap=30, separators=['\n\n', '，', '。', '【', ','])
-        chunks = [] # final result
-        for doc in docs:
-            doc_metadata = doc.metadata
-            source = None
-            if doc_metadata is not None and 'source' in doc_metadata:
-                source = doc_metadata['source']
-            document_dict = self._get_source_document(source)
-            graph_document = document_dict['graph_document']
-            document = document_dict['document']
-            page_content = doc.page_content
-            split_texts = spliter.split_text(page_content)
-            for text in split_texts:
-                pre_node = document_dict['pre_node']
-                text = self._bad_chars_clear(text)
-                properties = {
-                    'source': source,
-                    'content': text,
-                    'page_number':  document.metadata['total_page_num']
-                }
-                chunk_node = Node(id=str(uuid()), type='__Chunk__',
-                                    properties=properties)
-                chunk_doc = Document(page_content=text, metadata=properties)
-                chunks.append(
-                    {'chunk_id': chunk_node.id, 'chunk_doc': chunk_doc})
-                graph_document.nodes.append(chunk_node)
-                relationship = Relationship(
-                    source=pre_node, target=chunk_node, type='NEXT')
-                relationship_part = Relationship(
-                    source=document_dict['node'], target=chunk_node, type='PART')
-                graph_document.relationships.append(relationship)
-                graph_document.relationships.append(relationship_part)
-                document_dict['pre_node'] = chunk_node
-            self.graph.add_graph_documents([graph_document])
-            self._update_node_properties(document_dict['node'].id, document_dict['document'].metadata)
-        return chunks
+    #     Returns:
+    #         chunks (List[dict]): 
+    #             {'chunk_id': uuid,'chunk_doc': Document }
+    #     """        
+    #     if len(docs) == 0:
+    #         return
+    #     if spliter is None:
+    #         spliter = RecursiveCharacterTextSplitter(
+    #             chunk_size=300, chunk_overlap=30, separators=['\n\n', '，', '。', '【', ','])
+    #     chunks = [] # final result
+    #     for doc in docs:
+    #         doc_metadata = doc.metadata
+    #         source = None
+    #         if doc_metadata is not None and 'source' in doc_metadata:
+    #             source = doc_metadata['source']
+    #         document_dict = self._get_source_document(source)
+    #         graph_document = document_dict['graph_document']
+    #         document = document_dict['document']
+    #         page_content = doc.page_content
+    #         split_texts = spliter.split_text(page_content)
+    #         for text in split_texts:
+    #             pre_node = document_dict['pre_node']
+    #             text = self._bad_chars_clear(text)
+    #             properties = {
+    #                 'source': source,
+    #                 'content': text,
+    #                 'page_number':  document.metadata['total_page_num']
+    #             }
+    #             chunk_node = Node(id=str(uuid()), type='__Chunk__',
+    #                                 properties=properties)
+    #             chunk_doc = Document(page_content=text, metadata=properties)
+    #             chunks.append(
+    #                 {'chunk_id': chunk_node.id, 'chunk_doc': chunk_doc})
+    #             graph_document.nodes.append(chunk_node)
+    #             relationship = Relationship(
+    #                 source=pre_node, target=chunk_node, type='NEXT')
+    #             relationship_part = Relationship(
+    #                 source=document_dict['node'], target=chunk_node, type='PART')
+    #             graph_document.relationships.append(relationship)
+    #             graph_document.relationships.append(relationship_part)
+    #             document_dict['pre_node'] = chunk_node
+    #         self.graph.add_graph_documents([graph_document])
+    #         self.update_node_properties(document_dict['node'].id, document_dict['document'].metadata)
+    #     return chunks
 
     def _get_source_document(self, source: str, total_page=None):
         """
@@ -171,7 +170,7 @@ class TwlfGraphBuilder:
         doc = Document(page_content="\n".join([doc.page_content for doc in docs]), metadata={'source': docs[0].metadata.get('source'), 'total_page_num': len(docs)})
         return doc
     
-    def _update_node_properties(self, node_id: str, node_properties: dict) -> List[Dict[str, Any]] | None:
+    def update_node_properties(self, node_id: str, node_properties: dict) -> List[Dict[str, Any]] | None:
         if len(node_properties) == 0:
             return None
         set_query = ''
