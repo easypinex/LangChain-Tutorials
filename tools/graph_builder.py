@@ -245,7 +245,7 @@ class TwlfGraphBuilder:
                         MATCH (c:__Chunk__ {id: data.chunk_id})
                         CALL apoc.merge.node([data.node_type], {id: data.node_id}) YIELD node AS n
                         MERGE (c)-[:HAS_ENTITY]->(n)
-                        SET n.sources = coalesce(n.sources, []) + CASE WHEN data.source IS NOT NULL THEN [data.source] ELSE [] END
+                        SET n.sources = apoc.coll.union(coalesce(n.sources, []), [data.source])
                     """
             self.graph.query(unwind_query, params={"batch_data": batch_data})
 
@@ -265,7 +265,7 @@ class TwlfGraphBuilder:
         combined_chunk_document_list = self._get_combined_chunks(
             chunkId_chunkDoc_list)
         graph_document_list = self._get_graph_document_list(
-            llm, combined_chunk_document_list, allowedNodes, allowedRelationship, max_retry=2
+            llm, combined_chunk_document_list, allowedNodes, allowedRelationship, max_retry=0
         )
         return graph_document_list
 
