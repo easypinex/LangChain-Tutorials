@@ -31,9 +31,9 @@ class TwlfGraphBuilder:
             return
         chunks = [] # final result
         if parent_split_kwarg is None:
-            parent_split_kwarg = {'chunk_size': 1200, 'chunk_overlap': 200, 'separators': ['\n\n', '【.*】'], 'is_separator_regex': True}
+            parent_split_kwarg = {'chunk_size': 1200, 'chunk_overlap': 200, 'separators': ['\n\n', '【',  '。']}
         if child_split_kwarg is None:
-            child_split_kwarg = {'chunk_size': 300, 'chunk_overlap': 30, 'separators': ['\n\n', '【.*】'], 'is_separator_regex': True}
+            child_split_kwarg = {'chunk_size': 300, 'chunk_overlap': 30, 'separators': ['\n\n','【', '。', ]}
         result: TwlfGraphBuildResult = TwlfGraphBuildResult()
         for doc_pages in docs_pages:
             doc = self._merge_all_pages(doc_pages)
