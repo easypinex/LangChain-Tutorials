@@ -12,9 +12,9 @@ model = AzureChatOpenAI(
 from langchain_openai import AzureOpenAIEmbeddings
 emb = AzureOpenAIEmbeddings(
     model="text-embedding-3-small",
-    azure_endpoint='https://sales-chatbot-llm.openai.azure.com/openai/deployments/text-embedding-3-small/embeddings?api-version=2023-05-15',
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
     azure_deployment='text-embedding-3-small',
-    openai_api_version='2023-05-15'
+    openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"]
 )
 
 from langchain_community.document_loaders import PyPDFLoader
